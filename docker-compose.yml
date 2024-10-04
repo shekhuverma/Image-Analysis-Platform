@@ -1,0 +1,57 @@
+services:
+  redis:
+    image: redis:7.4.0-alpine
+    container_name: "redis"
+    restart: always
+    ports:
+      - 6379:6379
+    environment:
+      - REDIS_PASSWORD=password
+      - REDIS_PORT=6379
+    volumes: 
+      - redis:/data
+
+  fastapi:
+    build:
+      context: .
+    # image: ECR_URL
+    # platform: linux/arm64 Change as per deployment platform
+    ports:
+      - 8000
+    environment:
+      - USER=
+      - PASSWORD=
+      - SERVER=
+      - PORT=
+      - DB=
+      - DEBUG=False
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    deploy:
+      replicas : 4 #Change as per server size and scale
+    
+    #To suppport loggin on aws cloudwatch
+    # logging:
+    #   driver: awslogs
+    #   options:
+    #     awslogs-group: Image_Analysis_Platform
+    #     awslogs-stream: Image Alaysis API logs
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    depends_on:
+      - redis
+      - fastapi
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - location/of/certificate:/etc/nginx/certs/fullchain.pem
+      - location/of/certificate:/etc/nginx/certs/privkey.pem
+
+volumes:
+  redis:
+    driver: local
